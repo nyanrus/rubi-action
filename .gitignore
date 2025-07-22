@@ -1,0 +1,6 @@
+/github-actions-docs/
+
+# Nim
+/nimcache/
+/nim-gdb
+*.nim.cfg
