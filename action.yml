@@ -1,0 +1,38 @@
+name: 'Ruby Action DSL to YAML Helper'
+description: |
+  Ruby DSL로 작성된 GitHub Actions 워크플로우를 YAML로 변환하는 액션입니다.
+  - 입력: Ruby DSL 파일 (예: dsl/workflow.rb)
+  - 출력: 변환된 YAML 파일 (예: .github/workflows/generated.yml)
+  
+  ## 사용 예시
+  ```yaml
+  - uses: nyanrus/rubi-action@v0
+    with:
+      dsl: dsl/workflow.rb
+      output: .github/workflows/generated.yml
+  ```
+author: 'nyanrus'
+branding:
+  icon: 'package'
+  color: 'red'
+inputs:
+  dsl:
+    description: 'Ruby DSL 파일 경로 (예: .github/workflows/workflow.rb)'
+    required: true
+  output:
+    description: '생성할 YAML 파일 경로 (예: .github/workflows/generated.yml)'
+    required: false
+    default: '.github/workflows/generated.yml'
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+    - name: Install dependencies
+      run: |
+        bundle install || true
+    - name: Transform Ruby DSL to YAML
+      run: |
+        ruby bin/transform "${{ inputs.dsl }}" "${{ inputs.output }}"

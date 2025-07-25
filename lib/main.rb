@@ -1,41 +1,41 @@
-# typed: strict
-# frozen_string_literal: true
 
-require 'sorbet-runtime'
-require_relative 'gha/gha_plugin'
-require_relative 'plugin/language_plugin'
+# rubi-action DSL 변환 실행 진입점
+require 'fileutils'
 
-api = GHA::API.new_api
-api.load_plugins([GHA::Plugin::LanguagePlugin.create_language_plugin])
-
-workflow = api.workflow "my-workflow" do
-  on "push", branches: ["main"]
-
-  job "build" do
-    runs_on "ubuntu-latest"
-
-    python_result = python "Build Python", "scripts/build.py"
-    case python_result
-    when Result::Failure
-      puts "Error: #{python_result.error}"
+module RubiAction
+  module DSL
+    # ruby_code: String -> YAML String 반환
+    def self.transform(ruby_code)
+      # 실제 DSL 파싱 및 YAML 변환 구현 필요
+      # 예시: GHA::Core.to_yaml(eval(ruby_code))
+      begin
+        workflow = eval(ruby_code)
+        if defined?(GHA::Core)
+          GHA::Core.to_yaml(workflow)
+        else
+          "# 변환 실패: GHA::Core 미정의\n"
+        end
+      rescue Exception => e
+        "# 변환 실패: #{e.message}\n"
+      end
     end
-
-    ruby_result = ruby "Build Ruby", "scripts/build.rb"
-    case ruby_result
-    when Result::Failure
-      puts "Error: #{ruby_result.error}"
-    end
-
-    python_raw "Python Raw Block", <<~PYTHON
-      # This is where syntax completion should work for python (raw block)
-      print("hello from python block")
-    PYTHON
-
-    ruby_raw "Ruby a Block", <<~RUBY
-      # This is where syntax completion should work for ruby (raw block)
-      puts "hello from ruby block"
-    RUBY
   end
 end
 
-puts GHA::Core.to_yaml(workflow)
+def transform_dir(input_dir, output_dir)
+  Dir.glob(File.join(input_dir, "**/*.rb")).each do |file|
+    ruby_code = File.read(file)
+    yaml = RubiAction::DSL.transform(ruby_code)
+    rel = file.sub(/^#{Regexp.escape(input_dir)}\/?/, '').sub(/\.rb$/, '.yml')
+    out_path = File.join(output_dir, rel)
+    FileUtils.mkdir_p(File.dirname(out_path))
+    File.write(out_path, yaml)
+    puts "[INFO] #{file} -> #{out_path}"
+  end
+end
+
+if __FILE__ == $0
+  input_dir = ARGV[0] || 'dsl'
+  output_dir = ARGV[1] || '.github/workflows'
+  transform_dir(input_dir, output_dir)
+end

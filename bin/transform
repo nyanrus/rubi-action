@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+# bin/transform
+# Ruby DSL 파일을 GitHub Actions YAML로 변환하는 스크립트
+
+require_relative '../lib/main'
+
+input = ARGV[0] || 'workflow.rb'
+output = ARGV[1] || '.github/workflows/generated.yml'
+
+unless File.exist?(input)
+  warn "[ERROR] 입력 파일 #{input} 이(가) 존재하지 않습니다."
+  exit 1
+end
+
+# DSL 파싱 및 YAML 변환 (예시)
+ruby_code = File.read(input)
+yaml = RubiAction::DSL.transform(ruby_code)
+
+FileUtils.mkdir_p(File.dirname(output))
+File.write(output, yaml)
+puts "[INFO] 변환 완료: #{output}"

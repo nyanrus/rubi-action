@@ -1,0 +1,25 @@
+name: Publish Ruby Gem to GitHub Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+      - name: Build gem
+        run: |
+          gem build ruby-action.gemspec
+      - name: Publish to GitHub Packages
+        env:
+          RUBYGEMS_HOST: "https://rubygems.pkg.github.com/${{ github.repository_owner }}"
+          GEM_HOST_API_KEY: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gem push --key github --host $RUBYGEMS_HOST ruby-action-*.gem
