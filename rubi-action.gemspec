@@ -10,8 +10,9 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/nyanrus/rubi-action"
   spec.license       = "MIT"
 
-  spec.files         = Dir["lib/**/*", "README.md", "LICENSE.txt"]
+  spec.files         = Dir["lib/**/*", "README.md", "LICENSE.txt", "bin/*"]
   spec.require_paths = ["lib"]
+  spec.executables << "transform"
 
   spec.add_runtime_dependency "rake"
   # Add other dependencies as needed
