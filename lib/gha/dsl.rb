@@ -49,68 +49,6 @@ module GHA
       GHA::Core.add_step(@job, new_step)
     end
 
-    # Adds a python step by filename.
-    #
-    # @param name [String] The name of the step.
-    # @param filename [String] The path to the python script.
-    # @return [T.any(Result::Success[void], Result::Failure[String])]
-    # @example
-    #   python("Run script", "scripts/my_script.py")
-    sig { params(name: String, filename: String).returns(T.any(Result::Success[NilClass], Result::Failure[String])) }
-    def python(name, filename)
-      result = Helpers::ScriptHelper.read_script(filename)
-      case result
-      when Result::Success
-        step(name, run: result.value, shell: "python")
-        Result::Success.new(nil)
-      when Result::Failure
-        result
-      end
-    end
-
-    # Adds a ruby step by filename.
-    #
-    # @param name [String] The name of the step.
-    # @param filename [String] The path to the ruby script.
-    # @return [T.any(Result::Success[void], Result::Failure[String])]
-    # @example
-    #   ruby("Run script", "scripts/my_script.rb")
-    sig { params(name: String, filename: String).returns(T.any(Result::Success[NilClass], Result::Failure[String])) }
-    def ruby(name, filename)
-      result = Helpers::ScriptHelper.read_script(filename)
-      case result
-      when Result::Success
-        step(name, run: result.value, shell: "ruby {0}")
-        Result::Success.new(nil)
-      when Result::Failure
-        result
-      end
-    end
-
-    # Adds a python step with raw script content.
-    #
-    # @param name [String] The name of the step.
-    # @param script [String] The python script content.
-    # @return [void]
-    # @example
-    #   python_raw("Run inline script", "print('Hello from inline python')")
-    sig { params(name: String, script: String).void }
-    def python_raw(name, script)
-      step(name, run: script, shell: "python")
-    end
-
-    # Adds a ruby step with raw script content.
-    #
-    # @param name [String] The name of the step.
-    # @param script [String] The ruby script content.
-    # @return [void]
-    # @example
-    #   ruby_raw("Run inline script", "puts 'Hello from inline ruby'")
-    sig { params(name: String, script: String).void }
-    def ruby_raw(name, script)
-      step(name, run: script, shell: "ruby {0}")
-    end
-
     private
 
     # Helper to capture script from block
