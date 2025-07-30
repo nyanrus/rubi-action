@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "rubi-action"
-  spec.version       = "0.1.2"
+  spec.version       = "0.1.4"
   spec.authors       = ["nyanrus"]
 
   spec.summary       = "A Ruby gem for GitHub Actions helper and automation."
