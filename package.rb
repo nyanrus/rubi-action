@@ -9,7 +9,8 @@
 # frozen_string_literal: true
 
 require 'sorbet-runtime'
-require_relative '../lib/rubi-action'
+require 'gha/gha_plugin'
+require 'plugin/language_plugin'
 
 module PackageWorkflow
   extend T::Sig
@@ -338,3 +339,4 @@ module PackageWorkflow
     end # api.workflow
   end # def self.workflow
 end # module PackageWorkflow
+

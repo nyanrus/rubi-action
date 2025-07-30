@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+# bin/transform
+# Ruby DSL 파일을 GitHub Actions YAML로 변환하는 스크립트
+
+# Add the local lib directory to the load path, so we use the local source
+# instead of the installed gem.
+$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
+
+# We need FileUtils for file operations
+require 'fileutils'
+
+def main
+  input = ARGV[0] || 'workflow.rb'
+  output = ARGV[1] || '.github/workflows/generated.yml'
+
+  unless File.exist?(input)
+    warn "[ERROR] 입력 파일 #{input} 이(가) 존재하지 않습니다."
+    exit 1
+  end
+
+  puts "[INFO] 변환 시작: #{input}"
+  
+  begin
+    # Require the input file. It will use the environment set up by the load path.
+    # We need the absolute path for require.
+    require File.expand_path(input)
+    
+    # Find the workflow module dynamically.
+    workflow_module = ObjectSpace.each_object(Module).find do |mod|
+      mod.respond_to?(:workflow) && mod.name&.end_with?('Workflow')
+    end
+    
+    if workflow_module
+      workflow_obj = workflow_module.workflow
+      yaml = workflow_obj.serialize.to_yaml.sub(/^---\s*\n/, "")
+      
+      FileUtils.mkdir_p(File.dirname(output))
+      File.write(output, yaml)
+      puts "[SUCCESS] 변환 완료: #{output}"
+    else
+      warn "[ERROR] 워크플로우 모듈을 찾을 수 없습니다."
+      exit 1
+    end
+  rescue Exception => e
+    warn "[ERROR] 변환 중 예외 발생: #{e.message}"
+    warn e.backtrace.join("\n")
+    exit 1
+  end
+end
+
+# Run main function
+main if __FILE__ == $0

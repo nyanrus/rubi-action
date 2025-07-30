@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "rubi-action"
-  spec.version       = "0.1.5"
+  spec.version       = "0.1.6"
   spec.authors       = ["nyanrus"]
 
   spec.summary       = "A Ruby gem for GitHub Actions helper and automation."
@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
 
   spec.files         = Dir["lib/**/*", "README.md", "LICENSE.txt", "bin/*"]
   spec.require_paths = ["lib"]
-  spec.executables << "transform"
+  spec.executables << "rubi-action"
 
   spec.add_runtime_dependency "rake"
   # Add other dependencies as needed
