@@ -4,18 +4,94 @@
 
 require_relative '../lib/main'
 
-input = ARGV[0] || 'workflow.rb'
-output = ARGV[1] || '.github/workflows/generated.yml'
+def main
+  input = ARGV[0] || 'workflow.rb'
+  output = ARGV[1] || '.github/workflows/generated.yml'
 
-unless File.exist?(input)
-  warn "[ERROR] 입력 파일 #{input} 이(가) 존재하지 않습니다."
-  exit 1
+  unless File.exist?(input)
+    warn "[ERROR] 입력 파일 #{input} 이(가) 존재하지 않습니다."
+    exit 1
+  end
+
+  begin
+    puts "[INFO] 변환 시작: #{input}"
+    
+    # Set up the load path for require_relative calls
+    original_load_path = $LOAD_PATH.dup
+    $LOAD_PATH.unshift(File.dirname(File.expand_path(input)))
+    
+    ruby_code = File.read(input)
+    yaml = RubiAction::DSL.transform(ruby_code)
+    
+    # Check if transformation was successful
+    if yaml.start_with?("# 변환 실패")
+      puts "[WARN] 기본 변환 실패, 대체 방법 시도 중..."
+      
+      # Try alternative approach: require the file and call the module method
+      yaml = transform_via_require(input)
+    end
+
+    FileUtils.mkdir_p(File.dirname(output))
+    File.write(output, yaml)
+    
+    if yaml.start_with?("# 변환 실패")
+      puts "[ERROR] 변환 실패: #{output}"
+      puts yaml
+      exit 1
+    else
+      puts "[SUCCESS] 변환 완료: #{output}"
+    end
+    
+  rescue Exception => e
+    warn "[ERROR] 변환 중 예외 발생: #{e.message}"
+    warn e.backtrace.join("\n")
+    exit 1
+  ensure
+    # Restore original load path
+    $LOAD_PATH.replace(original_load_path) if original_load_path
+  end
 end
 
-# DSL 파싱 및 YAML 변환 (예시)
-ruby_code = File.read(input)
-yaml = RubiAction::DSL.transform(ruby_code)
+def transform_via_require(input_file)
+  begin
+    # Change to the input file's directory for proper require_relative resolution
+    original_dir = Dir.pwd
+    input_dir = File.dirname(File.expand_path(input_file))
+    filename = File.basename(input_file, '.rb')
+    
+    Dir.chdir(input_dir)
+    
+    # Load the file
+    load File.expand_path(input_file)
+    
+    # Look for workflow modules
+    workflow_modules = ObjectSpace.each_object(Module).select do |mod|
+      mod.respond_to?(:workflow) && mod.name&.end_with?('Workflow')
+    end
+    
+    if workflow_modules.empty?
+      return "# 변환 실패: 워크플로우 모듈을 찾을 수 없습니다."
+    end
+    
+    # Use the first found workflow module
+    workflow_module = workflow_modules.first
+    workflow_obj = workflow_module.workflow
+    
+    # Convert to YAML
+    if workflow_obj.respond_to?(:to_yaml)
+      workflow_obj.to_yaml
+    elsif defined?(GHA::Core) && GHA::Core.respond_to?(:to_yaml)
+      GHA::Core.to_yaml(workflow_obj)
+    else
+      return "# 변환 실패: YAML 변환 메서드를 찾을 수 없습니다."
+    end
+    
+  rescue Exception => e
+    "# 변환 실패 (require 방식): #{e.message}\n# #{e.backtrace.first(3).join("\n# ")}"
+  ensure
+    Dir.chdir(original_dir) if original_dir
+  end
+end
 
-FileUtils.mkdir_p(File.dirname(output))
-File.write(output, yaml)
-puts "[INFO] 변환 완료: #{output}"
+# Run main function
+main if __FILE__ == $0
