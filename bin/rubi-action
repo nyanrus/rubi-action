@@ -4,41 +4,49 @@
 
 # Add the local lib directory to the load path, so we use the local source
 # instead of the installed gem.
-$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
+$LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
 
 # We need FileUtils for file operations
 require 'fileutils'
 
 def main
+  puts "[DEBUG] main開始"
   input = ARGV[0] || 'workflow.rb'
   output = ARGV[1] || '.github/workflows/generated.yml'
 
+  puts "[DEBUG] 入力ファイル: #{input}"
   unless File.exist?(input)
     warn "[ERROR] 입력 파일 #{input} 이(가) 존재하지 않습니다."
     exit 1
   end
 
   puts "[INFO] 변환 시작: #{input}"
-  
   begin
-    # Require the input file. It will use the environment set up by the load path.
-    # We need the absolute path for require.
-    require File.expand_path(input)
-    
-    # Find the workflow module dynamically.
-    workflow_module = ObjectSpace.each_object(Module).find do |mod|
-      mod.respond_to?(:workflow) && mod.name&.end_with?('Workflow')
-    end
-    
+    require_path = File.expand_path(input)
+    puts "[DEBUG] require path: #{require_path}"
+    require require_path
+    puts "[DEBUG] require完了"
+    mods = ObjectSpace.each_object(Module).select { |mod| mod.respond_to?(:workflow) && mod.name&.end_with?('Workflow') }
+    puts "[DEBUG] workflow候補モジュール: #{mods.map(&:name).inspect}"
+    workflow_module = mods.first
     if workflow_module
+      puts "[DEBUG] workflow_module: #{workflow_module.name}"
       workflow_obj = workflow_module.workflow
+      puts "[DEBUG] workflow_obj: #{workflow_obj.inspect}"
+      if workflow_obj.nil?
+        warn "[ERROR] workflow_objがnilです。workflowメソッドが正しく値を返しているか確認してください。"
+        exit 1
+      end
+      unless workflow_obj.respond_to?(:serialize)
+        warn "[ERROR] workflow_objにserializeメソッドがありません。"
+        exit 1
+      end
       yaml = workflow_obj.serialize.to_yaml.sub(/^---\s*\n/, "")
-      
       FileUtils.mkdir_p(File.dirname(output))
       File.write(output, yaml)
       puts "[SUCCESS] 변환 완료: #{output}"
     else
-      warn "[ERROR] 워크플로우 모듈을 찾을 수 없습니다."
+      warn "[ERROR] ワークフローモジュールを見つけられません。"
       exit 1
     end
   rescue Exception => e
@@ -49,4 +57,4 @@ def main
 end
 
 # Run main function
-main if __FILE__ == $0
+main
